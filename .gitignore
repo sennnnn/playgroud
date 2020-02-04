@@ -1,0 +1,8 @@
+# folder
+__pycache__
+trash
+ckpt
+frozen_model
+
+# file
+try.py
