@@ -1,8 +1,50 @@
 import os
 import numpy as np
 
+def get_dataset(path):
+    with open(path, "r", encoding='utf-8') as f:
+        lines = f.readlines()
+        data = [line.strip() for line in lines]
+        return data
+
+def if_contain_char(string, char_list):
+    for char in char_list:
+        if(char in string):
+            return True
+    return False
+
+def load_graph(frozen_graph_filename):
+    with tf.gfile.GFile(frozen_graph_filename, "rb") as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+
+    with tf.Graph().as_default() as graph:
+        tf.import_graph_def(graph_def, name="")
+
+    print("load graph {} ...".format(frozen_graph_filename))
+    return graph
+
+def frozen_graph(sess, output_graph):
+    output_graph_def = tf.graph_util.convert_variables_to_constants(sess, # 因为计算图上只有ops没有变量，所以要通过会话，来获得变量有哪些
+                                                                   tf.get_default_graph().as_graph_def(),
+                                                                   ["predict"])
+
+    with open(output_graph,"wb") as f:
+        f.write(output_graph_def.SerializeToString())
+
+    return "{} ops written to {}.\n".format(len(output_graph_def.node), output_graph)
 
 def one_hot(nparray, depth=0, on_value=1, off_value=0):
+    """
+    将 nparray 变成 one-hot 编码。
+    Args:
+        nparray:待 one-hot 编码的数据。
+        depth:one-hot 编码的深度。
+        on_value:one-hot 编码时代表为某类时某维度置的值。
+        off_value:one_hot 编码时代表不为某类时某维度置的值。
+    Return:
+        out:one-hot 编码后的数据。
+    """
     if depth == 0:
         depth = np.max(nparray) + 1
     # 深度应该符合one_hot条件，其实keras有to_categorical(data,n_classes,dtype=float..)弄成one_hot
@@ -111,15 +153,15 @@ class Generator:
         # 是否随机混洗
         if(self.random):
             np.random.shuffle(self.data)
-        for start in range(0, total, self.batch_size):
+        for start in range(0, length, self.batch_size):
             end = min(start + self.batch_size, length)
             batch = []
             # 对单首古诗编码
-            for one in data[start:end]:
+            for one in self.data[start:end]:
                 batch.append(self.tokenizer.encode(one))
             # 填充为同一长度
             batch = self.sequence_padding(batch)
-            yield batch[:, :-1], one_hot(batch[:, 1:], tokenizer.vocabulary_size)
+            yield batch[:, :-1], one_hot(batch[:, 1:], self.tokenizer.vocabulary_size)
             del batch
 
     def for_fit(self):
@@ -153,7 +195,11 @@ class Tokenizer:
         Return:
             word:通过编号查找到的词。
         """
-        return self._id_word_dict[id]
+        try:
+            word = self._id_word_dict[id]
+        except:
+            word = '[UNK]'
+        return word
     
     def word_to_id(self, word):
         """
@@ -164,7 +210,11 @@ class Tokenizer:
         Return:
             id:词数字化后的id。
         """
-        return self._word_id_dict[word]
+        try:
+            id = self._word_id_dict[word]
+        except:
+            id = self._word_id_dict['[UNK]']
+        return id
 
     def encode(self, string):
         """
@@ -176,9 +226,9 @@ class Tokenizer:
             ids:编码序列
         """
         # 开始标记
-        ids = [self._word_id_dict['CLS']]
+        ids = [self._word_id_dict['[CLS]']]
         for char in string:
-            ids.append(self._word_id_dict[char])
+            ids.append(self.word_to_id(char))
         # 结束标记
         ids.append(self._word_id_dict['[SEP]'])
         return ids
@@ -197,8 +247,22 @@ class Tokenizer:
         # 解码后字符列表
         string = []
         for id in ids:
-            word = self._id_word_dict[id]
+            word = self.id_to_word(id)
             if word in ht_chars:
                 continue
             string.append(word)
         return ''.join(string)
+
+if __name__ == "__main__":
+    batch_size = 100
+    data = get_dataset("dataset/dataset.txt")
+    word_id_dict = read_dict("config/word_id_dict.txt")
+    word_id_dict = {key:int(val) for key,val in word_id_dict.items()}
+    tokenizer = Tokenizer(word_id_dict)
+    generator = Generator(data, batch_size, tokenizer)
+    # print(word_id_dict)
+    # print(data)
+    generator_ = generator.for_fit()
+    for i in generator_:
+        # print(i[1].shape)
+        i
