@@ -247,3 +247,49 @@ del A.score
 print(dir(A))
 print(A.score)
 ```
+
+### __slots__ 类变量
+
+``` python
+# 其实之前有个非常惊讶的事实就是类居然是可以随便添加属性的，就和字典赋值一样，这让我很震惊，
+# 而后为了防止出错就搞了个这样的类里关键变量，就是为了约束这种随意性，举个例子。
+class cl(object):
+    __slots__ = ('score')
+    def b(self):
+        print("class!")
+
+a = cl()
+print(dir(a)) # 最初的属性中，没有 score 这一项。
+a.score = 10
+print(dir(a)) # 强行赋值之后，居然多了 score 这一项属性。
+a.sc = 10
+print(dir(a)) # 这样强行赋值却又没有多出 sc 这一项属性，这就是 __slots__ 的作用。
+```
+
+### __new__ 的理解
+
+>p.s. 首先有一点真的很夸张，在 python 中，就连函数都是类，函数只是有 __call__ 属性的类，我是真的服了。  
+>类也是一个对象，实例也是一个对象，python 真的有点吓人，搞得有点哲学的意味了。  
+>元类主要就是在类中使用元类的 __new__ 方法了。  
+``` python
+# 首先要来理解一下 __new__ 方法，__new__ 方法能够创建一个对象，而不是初始化一个对象。
+# 实际上在获取一个对象的时候，都是先使用了对象的创建，然后再是对象的初始化，即先调用了
+# __new__ 方法，然后再调用了 __init__ 方法。
+class a(object):
+    def __new__(cls):
+        print(1,2,3)
+        # 其实就是调用了 object 的 __new__ 方法。
+        ret = super(a, cls).__new__(cls) # 由于 __new__() 必须要创建一个对象，而目前据我所知，能够真正创建对象的也就只有 object 类的
+        print(ret)                       #  __new__() 方法，而这个方法实际上是用 c 实现的，所以也无法深究。
+        return ret
+    
+    def __init__(self):
+        print(1,2)
+
+class b(object):
+    def __new__(cls): # object 中的 __new__() 方法是创建一个本类的对象，而重载之后,b 为创建一个 a 类的对象。
+        return a()
+
+print(a())
+print(b())
+```

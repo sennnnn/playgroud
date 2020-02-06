@@ -52,10 +52,10 @@ with tf.Session() as sess:
         for j in range(one_epoch_steps):
             train_batch_x,train_batch_y = next(train_epochwise_generator)
             _ = sess.run(optimizer, feed_dict={"x:0":train_batch_x, "y:0":train_batch_y})
-            if(j%5 == 0):
+            if(j%20 == 0):
                 valid_batch_x,valid_batch_y = next(valid_epochwise_generator)
                 acc,los = sess.run([accuracy, loss],feed_dict={"x:0":valid_batch_x, "y:0":valid_batch_y})
-                epochwise_accuracy += acc*5//one_epoch_steps
+                epochwise_accuracy += acc*20//one_epoch_steps
                 print("epoch:{} accuracy:{} loss:{}".format(i+1, acc, los))
-        frozen_graph("frozen_model/{}_{}.pb".format(i+1, epochwise_accuracy))
+        frozen_graph(sess ,"frozen_model/{}_{}.pb".format(i+1, epochwise_accuracy))
         saver.save(sess, "ckpt/model")
