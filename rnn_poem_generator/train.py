@@ -1,3 +1,4 @@
+import os
 import time
 import yaml as ya
 import tensorflow as tf
@@ -10,6 +11,11 @@ config_path = "config/config.yaml"
 dataset_path = "dataset/dataset.txt"
 word_id_dict_path = "config/word_id_dict.txt"
 config_dict = None
+
+if(not os.path.exists("ckpt")):
+    os.mkdir("ckpt")
+if(not os.path.exists("frozen_model")):
+    os.mkdir("frozen_model")
 
 with open(config_path,"r",encoding='utf-8') as f:
     config_dict = ya.load(f.read())
@@ -38,9 +44,10 @@ one_epoch_steps = train_generator.one_epoch_steps
 
 m = model(batch_size)
 output,last_state = m.network(input, rnn_layer_number, rnn_units_size, vocabulary_vector_size)
-output = tf.identity(output, name='predict')
+output = tf.identity(output, name='output')
 loss = m.loss(output, label)
-correct = tf.equal(tf.argmax(output, axis=-1), tf.argmax(label, axis=-1))
+predict = tf.nn.softmax(output, name='predict')
+correct = tf.equal(tf.argmax(predict, axis=-1), tf.argmax(label, axis=-1))
 accuracy = tf.reduce_mean(tf.cast(correct, tf.float32), name='accuracy')
 optimizer = m.optimizer(loss, learning_rate)
 init = tf.global_variables_initializer()
@@ -52,10 +59,10 @@ with tf.Session() as sess:
         for j in range(one_epoch_steps):
             train_batch_x,train_batch_y = next(train_epochwise_generator)
             _ = sess.run(optimizer, feed_dict={"x:0":train_batch_x, "y:0":train_batch_y})
-            if(j%20 == 0):
+            if((j+1)%20 == 0):
                 valid_batch_x,valid_batch_y = next(valid_epochwise_generator)
                 acc,los = sess.run([accuracy, loss],feed_dict={"x:0":valid_batch_x, "y:0":valid_batch_y})
-                epochwise_accuracy += acc*20//one_epoch_steps
+                epochwise_accuracy += acc*20/one_epoch_steps
                 print("epoch:{} accuracy:{} loss:{}".format(i+1, acc, los))
-        frozen_graph(sess ,"frozen_model/{}_{}.pb".format(i+1, epochwise_accuracy))
+        frozen_graph(sess ,"frozen_model/{}_%.3f.pb".format(i+1)%(epochwise_accuracy))
         saver.save(sess, "ckpt/model")

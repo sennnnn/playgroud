@@ -1,5 +1,22 @@
 import os
 import numpy as np
+import tensorflow as tf
+
+def get_newest(dir_path):
+    file_list = os.listdir(dir_path)
+    newest_file = os.path.join(dir_path,file_list[0])
+    for filename in file_list:
+        one_file = os.path.join(dir_path,filename)
+        if(get_ctime(newest_file) < get_ctime(one_file)):
+            newest_file = one_file
+    return newest_file 
+
+def get_ctime(file_path,ifstamp=True):
+    if(ifstamp):
+        return os.path.getctime(file_path)
+    else:
+        timeStruct = time.localtime(os.path.getctime(file_path))
+        return time.strftime("%Y-%m-%d %H:%M:%S",timeStruct)
 
 def get_dataset(path):
     with open(path, "r", encoding='utf-8') as f:
@@ -154,7 +171,9 @@ class Generator:
         if(self.random):
             np.random.shuffle(self.data)
         for start in range(0, length, self.batch_size):
-            end = min(start + self.batch_size, length)
+            end = start + self.batch_size
+            if(end >= length):
+                continue
             batch = []
             # 对单首古诗编码
             for one in self.data[start:end]:
