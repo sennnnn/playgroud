@@ -1,8 +1,14 @@
 # folder
+.vscode
+
+## python & deep learning
 __pycache__
 trash
 ckpt
 frozen_model
+
+## c++/c compile result
+build*
 
 # file
 try.py
