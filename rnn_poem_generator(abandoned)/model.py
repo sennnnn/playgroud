@@ -8,7 +8,7 @@ class model(object):
         self.batch_size = batch_size
 
     def network(self, input, rnn_layer_number, rnn_units_size, vocabulary_vector_size):
-        vocabulary_embedding_matrix_size = [vocabulary_vector_size,rnn_units_size]
+        vocabulary_embedding_matrix_size = [vocabulary_vector_size, rnn_units_size]
         embedding_convert_matrix = tf.Variable(tf.random_uniform(vocabulary_embedding_matrix_size), name='embedding')
         # embedding 权重，其实就是表示字符的 one-hot 编码变为二维 0~1 的浮点数表示的编码格式。
         lstm_input = tf.nn.embedding_lookup(embedding_convert_matrix, input)
